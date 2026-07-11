@@ -20,6 +20,7 @@ Enable it in the local, gitignored feature config:
 | `modelPicker.showModelsByDefault` | `patches/model-picker-model-list.js` | Opens the advanced picker by default and shows model choices inline instead of hiding them behind the compact Power slider and a nested Model submenu. | `tweaks.modelPicker.showModelsByDefault.enabled` |
 | `reasoning.keepEffortLabelsEnglish` | `patches/reasoning-effort-labels.js` | Keeps reasoning effort values in English in the Simplified Chinese UI while leaving the surrounding interface translated. | `tweaks.reasoning.keepEffortLabelsEnglish.enabled` |
 | `sidebar.projectName` | `patches/sidebar-project-name.js` | Styles project names in the left sidebar project list. It does not style `Projects` / `Chats` section headings and does not style chat rows. | `tweaks.sidebar.projectName.enabled`, `tweaks.sidebar.projectName.style` |
+| `sidebar.taskList` | `patches/sidebar-task-list.js` | Extracts running and attention tasks into a surfaced Active section, improves row legibility, and enlarges status affordances. | `tweaks.sidebar.taskList.enabled` |
 
 ## Settings
 
@@ -105,6 +106,29 @@ Config keys:
   syntax that could escape the scoped rule warns and falls back to the default.
   The default is `font-weight: 700 !important; padding-top: 0.25rem;`, so
   project names are bold with a small top offset and no color is forced.
+
+### `sidebar.taskList`
+
+Improves scanability without changing task ordering or behavior:
+
+- running and attention tasks are extracted into an `Active` section above pinned
+  and regular tasks while the remaining tasks stay in the normal list;
+- task rows use a 40px comfortable height and a slightly stronger title treatment;
+- running tasks get a 24px spinner, subtle activity tint, and a slim blue activity rail;
+- tasks needing attention get an amber rail, tinted row, larger dot, and explicit
+  `ATTENTION` label;
+- the bordered surface belongs only to the Active section; pinned tasks return
+  to the normal, quiet sidebar treatment.
+
+Config keys:
+
+- `enabled`: `true` applies the task-list hierarchy, `false` keeps the feature
+  enabled but skips both its CSS and status-marker patches.
+
+This tweak reuses upstream task keys, attention states, row components, semantic
+sidebar attributes, and theme tokens. Active rows are removed from the normal
+list rather than cloned, avoiding duplicate task IDs and ambiguous keyboard or
+automation targets.
 
 ## Drift Behavior
 

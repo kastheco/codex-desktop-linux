@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>kasmos monitor concept</title>
+<style>
+:root{
+  color-scheme:light;
+  --ui:Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --mono:"SFMono-Regular","Cascadia Code","JetBrains Mono",monospace;
+  --type-body:var(--codex-font-size-body,var(--font-size-base,15px));
+  --type-small:calc(var(--type-body) * .8);
+  --type-meta:calc(var(--type-body) * .733);
+  --type-section:calc(var(--type-body) * .933);
+  --type-title:calc(var(--type-body) * 1.6);
+  --base:var(--codex-background,#faf4ed);
+  --surface:var(--codex-surface,#fffaf3);
+  --overlay:var(--codex-surface-secondary,#f2e9e1);
+  --text:var(--codex-foreground,#575279);
+  --subtle:var(--codex-foreground-secondary,#797593);
+  --muted:var(--codex-foreground-tertiary,#9893a5);
+  --line:color-mix(in srgb,var(--text) 12%,transparent);
+  --line-strong:color-mix(in srgb,var(--text) 22%,transparent);
+  --love:#b4637a;--gold:#ea9d34;--rose:#d7827e;--pine:#286983;--foam:#56949f;--iris:#907aa9;
+  --foam-soft:color-mix(in srgb,var(--foam) 13%,transparent);
+  --iris-soft:color-mix(in srgb,var(--iris) 13%,transparent);
+  --gold-soft:color-mix(in srgb,var(--gold) 13%,transparent);
+  --shadow:0 18px 52px rgba(87,82,121,.1)
+}
+html[data-theme=dark]{
+  color-scheme:dark;
+  --base:var(--codex-background,#232136);
+  --surface:var(--codex-surface,#2a273f);
+  --overlay:var(--codex-surface-secondary,#393552);
+  --text:var(--codex-foreground,#e0def4);
+  --subtle:var(--codex-foreground-secondary,#908caa);
+  --muted:var(--codex-foreground-tertiary,#6e6a86);
+  --love:#eb6f92;--gold:#f6c177;--rose:#ea9a97;--pine:#3e8fb0;--foam:#9ccfd8;--iris:#c4a7e7;
+  --shadow:0 22px 64px rgba(9,8,18,.27)
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--base);color:var(--text);font-family:var(--ui);font-size:var(--type-body);line-height:1.45;-webkit-font-smoothing:antialiased}
+button{font:inherit}
+button:focus-visible{outline:2px solid var(--foam);outline-offset:2px}
+.app{height:100vh;display:grid;grid-template-rows:48px minmax(0,1fr)}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 14px 0 18px;border-bottom:1px solid var(--line);background:color-mix(in srgb,var(--base) 91%,transparent);backdrop-filter:blur(18px);position:relative;z-index:10}
+.brand,.crumbs,.top-actions,.live,.section-title,.metric-line,.agent-card,.card-top,.inspector-title,.legend{display:flex;align-items:center}
+.brand{gap:8px;min-width:0}.mark{width:112px;height:24px;display:grid;place-items:center}.mark img{display:block;width:112px;height:24px;object-fit:contain}
+.crumbs{gap:7px;min-width:0;white-space:nowrap}.project{font-weight:650}.slash{color:var(--muted)}.crumbs .task{color:var(--subtle);overflow:hidden;text-overflow:ellipsis}
+.top-actions{gap:5px}.live{gap:6px;color:var(--foam);font-size:12px;font-weight:650;padding:4px 7px}.live:before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;box-shadow:0 0 0 4px var(--foam-soft)}
+.icon-button,.quiet-button,.tab,.selectable,.log-row,.primary-button{border:0;color:inherit;cursor:pointer}.icon-button,.quiet-button{background:transparent;border-radius:7px;color:var(--subtle)}.icon-button{width:30px;height:30px;display:grid;place-items:center}.quiet-button{padding:6px 9px;font-size:12px}.icon-button:hover,.quiet-button:hover{background:var(--overlay);color:var(--text)}
+.workspace{min-height:0}
+.main{min-width:0;height:calc(100vh - 48px);padding:14px clamp(14px,2.2vw,28px) 12px;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+.summary{flex:none;display:flex;align-items:center;justify-content:space-between;gap:24px;min-height:56px}
+.eyebrow{color:var(--muted);font:600 10px/1.2 var(--mono);letter-spacing:.07em;text-transform:uppercase;margin-bottom:4px}
+h1{font-size:22px;line-height:1.1;letter-spacing:-.028em;margin:0;font-weight:620}.subhead{margin:4px 0 0;color:var(--subtle);font-size:13px}
+.stage-summary{display:flex;align-items:center;gap:14px;margin-top:6px;color:var(--subtle);font-size:var(--type-small)}.stage-state{display:inline-flex;align-items:center;gap:5px;white-space:nowrap}.stage-icon{width:15px;height:15px;border-radius:50%;display:grid;place-items:center;font:700 9px/1 var(--mono)}.stage-state.done{color:var(--foam)}.stage-state.done .stage-icon{background:var(--foam-soft)}.stage-state.active{color:var(--iris)}.stage-state.active .stage-icon{background:var(--iris-soft);animation:breathe 2.3s ease-in-out infinite}.stage-state.failed{color:var(--love)}
+.metrics{display:grid;grid-template-columns:repeat(4,auto);white-space:nowrap}.metric{padding:0 14px;border-left:1px solid var(--line)}.metric:first-child{border-left:0}.metric-value{font:600 16px/1.2 var(--mono)}.metric-label{color:var(--muted);font-size:11px;margin-top:2px}
+.trace-shell{flex:0 1 auto;min-height:260px;border:1px solid var(--line);border-radius:11px;background:var(--surface);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+.trace-header,.signal-header{height:39px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 13px 0 15px;border-bottom:1px solid var(--line)}
+.section-title{gap:7px;font-weight:620;font-size:13px}.section-title span{color:var(--muted);font-weight:400;font-size:11px}.legend{gap:13px;color:var(--subtle);font-size:11px}.legend i{width:6px;height:6px;border-radius:50%;display:inline-block;margin-right:4px}.legend .done{background:var(--foam)}.legend .active{background:var(--iris)}.legend .queued{border:1px solid var(--muted)}
+.trace-body{min-height:0;overflow:auto;padding:5px 16px 9px;background:linear-gradient(90deg,color-mix(in srgb,var(--overlay) 25%,transparent),transparent 36%)}
+.phase{display:grid;grid-template-columns:160px minmax(0,1fr);position:relative}
+.phase-axis{position:relative;padding:12px 14px 12px 30px;min-height:66px}
+.phase-axis:before{content:"";position:absolute;left:10px;top:0;bottom:0;width:1px;background:var(--line-strong)}
+.phase:first-child .phase-axis:before{top:20px}.phase:last-child .phase-axis:before{bottom:calc(100% - 20px)}
+.phase-dot{position:absolute;left:5px;top:18px;width:11px;height:11px;border-radius:50%;background:var(--surface);border:2px solid var(--muted);z-index:1}
+.phase.complete .phase-dot{background:var(--foam);border-color:var(--foam);box-shadow:0 0 0 4px var(--foam-soft)}
+.phase.active .phase-dot{background:var(--iris);border-color:var(--iris);box-shadow:0 0 0 5px var(--iris-soft);animation:breathe 2.3s ease-in-out infinite}
+.phase-name{display:block;font-size:13px;font-weight:650}.phase-meta{display:block;color:var(--muted);font:10px/1.4 var(--mono);margin-top:3px}
+.phase-content{border-bottom:1px solid var(--line);padding:9px 0 9px 10px;min-width:0}.phase:last-child .phase-content{border-bottom:0}
+.agent-grid,.task-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(165px,1fr));gap:8px}
+.agent-card,.task-card,.decision-card{min-width:0;border:1px solid var(--line);border-radius:7px;background:color-mix(in srgb,var(--surface) 86%,var(--overlay));padding:8px 9px;text-align:left}
+.selectable{transition:background .13s,border-color .13s,transform .13s}.selectable:hover{background:var(--overlay);border-color:var(--line-strong);transform:translateY(-1px)}.selectable.selected{border-color:var(--iris);box-shadow:0 0 0 3px var(--iris-soft)}
+.agent-card{gap:8px}.avatar{width:27px;height:27px;flex:none;border-radius:7px;display:grid;place-items:center;background:var(--overlay);color:var(--foam);font:700 10px/1 var(--mono)}.avatar.iris{color:var(--iris)}.avatar.gold{color:var(--gold)}
+.agent-copy{min-width:0}.agent-role{font-size:12px;font-weight:620;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.agent-meta{color:var(--muted);font:10px/1.4 var(--mono);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.state-glyph{margin-left:auto;color:var(--foam);font-size:12px}.state-glyph.running{color:var(--iris)}
+.decision-card{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:8px;color:var(--subtle);font-size:12px}.decision-icon{font:700 12px/1 var(--mono);color:var(--gold)}
+.wave-stack{display:grid;gap:8px}.wave-row{display:grid;grid-template-columns:90px minmax(0,1fr);gap:10px;align-items:start}.wave-label{padding-top:6px}.wave-name{font:650 11px/1.2 var(--mono)}.wave-state{color:var(--muted);font-size:10px;margin-top:3px}.task-card{display:block;position:relative}.card-top{justify-content:space-between;gap:6px}.task-id{color:var(--muted);font:10px/1.2 var(--mono)}.check{color:var(--foam);font-size:11px}.running-dot{width:6px;height:6px;border-radius:50%;background:var(--iris);box-shadow:0 0 0 4px var(--iris-soft)}.task-name{font-size:12px;font-weight:610;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.task-agent{color:var(--muted);font:10px/1.35 var(--mono);margin-top:3px}
+.cycle-stack{display:grid;gap:7px}.cycle{display:grid;grid-template-columns:90px minmax(0,1fr);gap:10px;align-items:center}.cycle-label{font:600 10px/1.35 var(--mono);color:var(--muted)}.cycle-flow{display:flex;align-items:center;gap:7px;min-width:0}.mini-agent{flex:1;min-width:110px;border:1px solid var(--line);border-radius:7px;padding:7px 8px;background:color-mix(in srgb,var(--surface) 86%,var(--overlay));font-size:11px}.mini-agent b{font-weight:620}.mini-agent span{display:block;color:var(--muted);font:10px/1.3 var(--mono);margin-top:2px}.flow-arrow{color:var(--muted);font:12px/1 var(--mono)}.cycle.active-cycle{padding:5px;border-radius:8px;background:var(--iris-soft)}.cycle.active-cycle .cycle-label{color:var(--iris)}
+.signals{flex:0 1 auto;min-height:74px;max-height:180px;border:1px solid var(--line);border-radius:9px;background:var(--surface);box-shadow:var(--shadow);overflow:auto}.signal-header{height:40px;position:sticky;top:0;z-index:2;background:var(--surface)}.log{display:grid;grid-template-columns:1fr}.log-row{display:grid;grid-template-columns:52px 6px minmax(0,1fr);align-items:center;gap:9px;padding:9px 11px;background:transparent;text-align:left;border-bottom:1px solid var(--line);min-width:0}.log-row:last-child{border-bottom:0}.log-time{font:10px/1 var(--mono);color:var(--muted)}.log-dot{width:6px;height:6px;border-radius:50%;background:var(--foam)}.log-dot.active{background:var(--iris)}.log-dot.warn{background:var(--gold)}.log-copy{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tray{flex:none;border:1px solid var(--line);border-radius:10px;background:var(--surface);box-shadow:var(--shadow);overflow:hidden}
+.tray-head{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:10px 13px;border-bottom:1px solid var(--line)}.inspector-title{gap:9px}.inspector-title h2{margin:0;font-size:15px;letter-spacing:-.012em}.status{color:var(--iris);background:var(--iris-soft);border-radius:999px;padding:3px 8px;font:10px/1.3 var(--mono)}.inspector-sub{color:var(--muted);margin-top:3px;font:10px/1.4 var(--mono)}
+.tabs{display:flex;align-self:stretch;gap:3px}.tab{padding:7px 11px;background:transparent;color:var(--subtle);border-radius:6px;font-size:11px}.tab.active{color:var(--text);background:var(--iris-soft)}
+.panel{padding:12px 14px}.panel[hidden]{display:none}.tray-details{display:grid;grid-template-columns:minmax(250px,.9fr) minmax(270px,1.2fr) minmax(230px,1fr);gap:18px;align-items:start}.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 11px}.detail dt{color:var(--muted);font-size:10px;margin-bottom:2px}.detail dd{margin:0;font:11px/1.4 var(--mono);overflow-wrap:anywhere}.progress-label{display:flex;justify-content:space-between;color:var(--muted);font-size:11px;margin-bottom:5px}.bar{height:4px;border-radius:3px;background:var(--overlay);overflow:hidden}.bar span{display:block;height:100%;width:74%;background:var(--iris)}
+.block{margin:0}.block h3{margin:0 0 7px;color:var(--muted);font-size:10px;font-weight:650;text-transform:uppercase;letter-spacing:.06em}.code{margin:0;padding:9px;border:1px solid var(--line);border-radius:7px;background:var(--base);color:var(--subtle);font:10px/1.5 var(--mono);white-space:pre-wrap;max-height:105px;overflow:auto}.response{border-left:2px solid var(--foam);padding-left:10px;color:var(--subtle);font-size:12px;margin:0}
+.tray-footer{display:flex;align-items:center;justify-content:flex-end;gap:10px;border-top:1px solid var(--line);padding:8px 10px}.primary-button{width:auto;min-width:190px;padding:8px 15px;border-radius:7px;background:var(--text);color:var(--base);font-weight:650}.primary-button:hover{opacity:.88}.future-note{color:var(--muted);font-size:10px}
+.toast{position:fixed;left:50%;bottom:18px;transform:translate(-50%,18px);background:var(--text);color:var(--base);border-radius:7px;padding:8px 10px;opacity:0;pointer-events:none;transition:.18s;z-index:20;font-size:10px}.toast.show{opacity:1;transform:translate(-50%,0)}
+@keyframes breathe{50%{box-shadow:0 0 0 8px transparent}}
+/* Type derives from the Codex body-size token; operational roles scale from it. */
+.crumbs,.project,.crumbs .task{font-size:var(--type-body)}
+h1{font-size:var(--type-title)}
+.subhead,.agent-role,.task-name,.decision-card,.response,.primary-button{font-size:var(--type-section)}
+.section-title,.phase-name,.inspector-title h2{font-size:var(--type-section)}
+.live,.quiet-button,.legend,.section-title span,.metric-label,.tab,.detail dd,.progress-label,.log-copy{font-size:var(--type-small)}
+.eyebrow,.phase-meta,.agent-meta,.wave-name,.wave-state,.task-id,.task-agent,.cycle-label,.mini-agent span,.log-time,.status,.inspector-sub,.detail dt,.block h3,.future-note{font-size:var(--type-meta)}
+.mini-agent,.code{font-size:var(--type-small)}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important}}
+@media(max-width:900px){.main{height:auto;min-height:calc(100vh - 48px);overflow:visible}.trace-shell{min-height:0}.signals{max-height:180px}.tray-details{grid-template-columns:1fr 1fr}.tray-details>:last-child{grid-column:1/-1}}
+@media(max-width:650px){.main{padding:10px}.summary{align-items:flex-start;flex-direction:column;gap:10px}.metrics{width:100%;grid-template-columns:repeat(4,1fr)}.metric:first-child{padding-left:0}.phase{grid-template-columns:115px minmax(0,1fr)}.phase-axis{padding-left:25px}.wave-row,.cycle{grid-template-columns:1fr}.wave-label{padding:0}.cycle-flow{overflow:auto}.log{grid-template-columns:1fr}.log-row{border-right:0;border-bottom:1px solid var(--line)}.tray-head{align-items:flex-start;flex-direction:column}.tray-details{grid-template-columns:1fr}.tray-details>:last-child{grid-column:auto}.tray-footer{align-items:stretch;flex-direction:column}.primary-button{width:100%}.quiet-button{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="topbar">
+  <div class="brand"><div class="mark"><img src="./logo-full.png" alt="kasmos"></div><div class="crumbs"><span class="slash">/</span><span class="task">codex-live-monitor-ui</span></div></div>
+  <div class="top-actions"><span class="live">live</span><button class="quiet-button" id="themeButton">theme: host</button><button class="icon-button" title="refresh snapshot">↻</button><button class="icon-button" title="pin monitor">⌁</button></div>
+</header>
+<div class="workspace">
+<main class="main">
+  <section class="summary">
+    <div><div class="eyebrow">delivery monitor · plan/codex-live-monitor-ui</div><h1>codex live monitor ui</h1><div class="stage-summary" aria-label="task stage status"><span class="stage-state done"><span class="stage-icon">✓</span>architecture</span><span class="stage-state done"><span class="stage-icon">✓</span>implementation</span><span class="stage-state active"><span class="stage-icon">●</span>readiness</span></div></div>
+    <div class="metrics"><div class="metric"><div class="metric-value">82%</div><div class="metric-label">progress</div></div><div class="metric"><div class="metric-value">3 / 3</div><div class="metric-label">waves</div></div><div class="metric"><div class="metric-value">1</div><div class="metric-label">running</div></div><div class="metric"><div class="metric-value">3</div><div class="metric-label">review cycle</div></div></div>
+  </section>
+
+  <section class="trace-shell">
+    <header class="trace-header"><div class="section-title">task lifecycle</div><div class="legend"><span><i class="done"></i>complete</span><span><i class="active"></i>active</span><span><i class="queued"></i>queued</span></div></header>
+    <div class="trace-body">
+      <section class="phase complete">
+        <div class="phase-axis"><span class="phase-dot"></span><span class="phase-name">planning</span><span class="phase-meta">2 drafts compared</span></div>
+        <div class="phase-content"><div class="agent-grid">
+          <button class="agent-card selectable" data-title="planner · opus" data-status="complete" data-id="planning · draft a" data-agent="planner_opus · claude-opus-4-8"><span class="avatar">PO</span><span class="agent-copy"><span class="agent-role">planner · opus</span><span class="agent-meta">draft a · 18m 42s</span></span><span class="state-glyph">✓</span></button>
+          <button class="agent-card selectable" data-title="planner · gpt" data-status="complete" data-id="planning · draft b" data-agent="planner_gpt · gpt-5.6-sol"><span class="avatar">PG</span><span class="agent-copy"><span class="agent-role">planner · gpt</span><span class="agent-meta">draft b · 11m 09s</span></span><span class="state-glyph">✓</span></button>
+        </div></div>
+      </section>
+
+      <section class="phase complete">
+        <div class="phase-axis"><span class="phase-dot"></span><span class="phase-name">architecture</span><span class="phase-meta">plan accepted</span></div>
+        <div class="phase-content"><div class="agent-grid">
+          <button class="agent-card selectable" data-title="architect pass" data-status="complete" data-id="architecture · final plan" data-agent="architect · claude-opus-4-8"><span class="avatar gold">A</span><span class="agent-copy"><span class="agent-role">architect</span><span class="agent-meta">5 tasks · 3 waves</span></span><span class="state-glyph">✓</span></button>
+          <div class="decision-card"><span class="decision-icon">Δ</span><span>merged both drafts · added bridge polling and read-only tool boundary</span></div>
+        </div></div>
+      </section>
+
+      <section class="phase complete">
+        <div class="phase-axis"><span class="phase-dot"></span><span class="phase-name">implementation</span><span class="phase-meta">5 / 5 tasks</span></div>
+        <div class="phase-content"><div class="wave-stack">
+          <div class="wave-row"><div class="wave-label"><div class="wave-name">WAVE 01</div><div class="wave-state">2 parallel · complete</div></div><div class="task-grid">
+            <button class="task-card selectable" data-title="extend livestatus contract" data-status="complete" data-id="wave 1 · task 1" data-agent="coder · gpt-5.5"><span class="card-top"><span class="task-id">T01 · CONTRACT</span><span class="check">✓</span></span><span class="task-name">extend livestatus contract</span><span class="task-agent">coder · 14m 18s</span></button>
+            <button class="task-card selectable" data-title="project agent state" data-status="complete" data-id="wave 1 · task 2" data-agent="coder · gpt-5.5"><span class="card-top"><span class="task-id">T02 · DAEMON</span><span class="check">✓</span></span><span class="task-name">project agent state</span><span class="task-agent">coder · 9m 54s</span></button>
+          </div></div>
+          <div class="wave-row"><div class="wave-label"><div class="wave-name">WAVE 02</div><div class="wave-state">complete</div></div><div class="task-grid">
+            <button class="task-card selectable" data-title="build monitor bundle" data-status="complete" data-id="wave 2 · task 3" data-agent="coder · gpt-5.5"><span class="card-top"><span class="task-id">T03 · REACT</span><span class="check">✓</span></span><span class="task-name">build monitor bundle</span><span class="task-agent">coder · 22m 31s</span></button>
+          </div></div>
+          <div class="wave-row"><div class="wave-label"><div class="wave-name">WAVE 03</div><div class="wave-state">2 parallel · complete</div></div><div class="task-grid">
+            <button class="task-card selectable" data-title="serve widget resource" data-status="complete" data-id="wave 3 · task 4" data-agent="coder · gpt-5.5"><span class="card-top"><span class="task-id">T04 · MCP APP</span><span class="check">✓</span></span><span class="task-name">serve widget resource</span><span class="task-agent">coder · 31m 06s</span></button>
+            <button class="task-card selectable" data-title="document monitor" data-status="complete" data-id="wave 3 · task 5" data-agent="coder · gpt-5.5"><span class="card-top"><span class="task-id">T05 · DOCS</span><span class="check">✓</span></span><span class="task-name">document monitor</span><span class="task-agent">coder · 12m 40s</span></button>
+          </div></div>
+        </div></div>
+      </section>
+
+      <section class="phase active">
+        <div class="phase-axis"><span class="phase-dot"></span><span class="phase-name">review</span><span class="phase-meta">cycle 3 active</span></div>
+        <div class="phase-content"><div class="cycle-stack">
+          <div class="cycle"><div class="cycle-label">CYCLE 01<br>22:18</div><div class="cycle-flow"><button class="mini-agent selectable" data-title="reviewer · cycle 1" data-status="changes" data-id="review cycle 1" data-agent="reviewer · gpt-5.6-sol"><b>reviewer</b><span>4 findings · changes</span></button><span class="flow-arrow">→</span><button class="mini-agent selectable" data-title="fixer · cycle 1" data-status="complete" data-id="fix cycle 1" data-agent="fixer · gpt-5.6-sol"><b>fixer</b><span>4 resolved · 8m</span></button></div></div>
+          <div class="cycle"><div class="cycle-label">CYCLE 02<br>22:28</div><div class="cycle-flow"><button class="mini-agent selectable" data-title="reviewer · cycle 2" data-status="changes" data-id="review cycle 2" data-agent="reviewer · gpt-5.6-sol"><b>reviewer</b><span>2 findings · changes</span></button><span class="flow-arrow">→</span><button class="mini-agent selectable" data-title="fixer · cycle 2" data-status="complete" data-id="fix cycle 2" data-agent="fixer · gpt-5.6-sol"><b>fixer</b><span>2 resolved · 5m</span></button></div></div>
+          <div class="cycle active-cycle"><div class="cycle-label">CYCLE 03<br>NOW</div><div class="cycle-flow"><button class="mini-agent selectable selected" data-title="master readiness review" data-status="active" data-id="review cycle 3 · readiness" data-agent="master · gpt-5.6-sol"><b>master</b><span>verifying branch head</span></button><span class="flow-arrow">→</span><div class="mini-agent"><b>decision</b><span>waiting for signal</span></div></div></div>
+        </div></div>
+      </section>
+
+      <section class="phase">
+        <div class="phase-axis"><span class="phase-dot"></span><span class="phase-name">readiness</span><span class="phase-meta">waiting</span></div>
+        <div class="phase-content"><div class="decision-card"><span class="decision-icon">○</span><span>pr checks, review decision, and verified head will appear here when admitted.</span></div></div>
+      </section>
+    </div>
+  </section>
+
+  <section class="signals"><header class="signal-header"><div class="section-title">signal history <span>latest first</span></div><button class="quiet-button">view all</button></header><div class="log">
+    <button class="log-row"><span class="log-time">22:34</span><span class="log-dot active"></span><span class="log-copy">readiness review started</span></button>
+    <button class="log-row"><span class="log-time">22:29</span><span class="log-dot warn"></span><span class="log-copy">fixer resolved 2 findings</span></button>
+    <button class="log-row"><span class="log-time">22:24</span><span class="log-dot"></span><span class="log-copy">review changes requested</span></button>
+  </div></section>
+
+  <section class="tray" aria-label="selection details">
+    <header class="tray-head">
+      <div><div class="inspector-title"><h2 id="inspectTitle">master readiness review</h2><span class="status" id="inspectStatus">active</span></div><div class="inspector-sub" id="inspectId">review cycle 3 · readiness</div></div>
+      <div class="tabs"><button class="tab active" data-tab="details">details</button><button class="tab" data-tab="prompt">prompt</button><button class="tab" data-tab="output">output</button><button class="tab" data-tab="signals">signals</button></div>
+    </header>
+    <div class="panel tray-details" data-panel="details">
+      <div><dl class="detail-grid"><div class="detail"><dt>agent</dt><dd id="inspectAgent">master · gpt-5.6-sol</dd></div><div class="detail"><dt>state</dt><dd>active · 3m ago</dd></div><div class="detail"><dt>branch</dt><dd>plan/codex-live-monitor-ui</dd></div><div class="detail"><dt>review</dt><dd>cycle 3 of 8</dd></div></dl><div class="progress-label"><span>readiness evidence</span><span>74%</span></div><div class="bar"><span></span></div></div>
+      <div class="block"><h3>current work</h3><p class="response" id="currentWork">checking the self-contained bundle, read-only tool boundary, and single-flight polling behavior against the accepted plan.</p></div>
+      <div class="block"><h3>verification</h3><pre class="code">go test ./internal/appwidget ./cmd/...
+go build ./...
+npm run test:dom
+3 passed · 0 failed</pre></div>
+    </div>
+    <div class="panel" data-panel="prompt" hidden><div class="block"><h3>agent prompt</h3><pre class="code">review the implementation of plan: codex-live-monitor-ui
+
+round 3. verify prior findings, inspect fixer-touched integration surfaces, and emit exactly one readiness signal.</pre></div></div>
+    <div class="panel tray-details" data-panel="output" hidden><div class="block"><h3>latest response</h3><p class="response">the localhost preview boundary now honors custom serve urls. scoped widget, mcp, and command tests pass.</p></div><div class="block"><h3>files touched</h3><pre class="code">cmd/monitor.go
+cmd/monitor_test.go
+web/admin/src/widget/openai.ts</pre></div></div>
+    <div class="panel" data-panel="signals" hidden><div class="block"><h3>agent signals</h3><pre class="code">22:34 verify_start
+22:29 implement_finished
+22:24 review_changes
+22:18 review_start</pre></div></div>
+    <footer class="tray-footer"><span class="future-note">opens this exact phase, cycle, or task in codex</span><button class="primary-button" id="openAgent">open in agent pane</button></footer>
+  </section>
+</main>
+</div>
+</div>
+<div class="toast">agent pane handoff would open here</div>
+<script>
+const root=document.documentElement;
+const themeButton=document.getElementById("themeButton");
+const themeModes=["host","moon","dawn"];
+let themeIndex=0;
+function hostTheme(){return window.openai&&window.openai.theme?window.openai.theme:(matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light")}
+function applyTheme(mode){const resolved=mode==="host"?hostTheme():(mode==="moon"?"dark":"light");root.dataset.theme=resolved;themeButton.textContent="theme: "+mode}
+themeButton.addEventListener("click",()=>{themeIndex=(themeIndex+1)%themeModes.length;applyTheme(themeModes[themeIndex])});
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change",()=>{if(themeModes[themeIndex]==="host")applyTheme("host")});
+window.addEventListener("openai:set_globals",event=>{if(window.openai&&event.detail&&event.detail.globals)Object.assign(window.openai,event.detail.globals);if(themeModes[themeIndex]==="host")applyTheme("host")});
+applyTheme("host");
+const title=document.getElementById("inspectTitle"),status=document.getElementById("inspectStatus"),id=document.getElementById("inspectId"),agent=document.getElementById("inspectAgent"),work=document.getElementById("currentWork");
+document.querySelectorAll(".selectable").forEach(node=>node.addEventListener("click",()=>{document.querySelectorAll(".selectable").forEach(n=>n.classList.remove("selected"));node.classList.add("selected");title.textContent=node.dataset.title;status.textContent=node.dataset.status;id.textContent=node.dataset.id;agent.textContent=node.dataset.agent;work.textContent=node.dataset.status==="complete"?"completed with evidence attached. open prompt, output, or signals to inspect the execution record.":"this agent is active now. its current work and latest evidence stay pinned to this selection."}));
+document.querySelectorAll(".tab").forEach(tab=>tab.addEventListener("click",()=>{document.querySelectorAll(".tab").forEach(t=>t.classList.toggle("active",t===tab));document.querySelectorAll("[data-panel]").forEach(panel=>panel.hidden=panel.dataset.panel!==tab.dataset.tab)}));
+const toast=document.querySelector(".toast");document.getElementById("openAgent").addEventListener("click",()=>{toast.classList.add("show");setTimeout(()=>toast.classList.remove("show"),1800)});
+</script>
+</body>
+</html>

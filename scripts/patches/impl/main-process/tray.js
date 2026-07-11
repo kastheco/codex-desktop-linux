@@ -187,6 +187,12 @@ function applyLinuxTrayPatch(currentSource, iconPathExpression) {
         (_match, resultAlias, resolverAlias, resolverArgs, electronAlias) =>
           `let ${resultAlias}=${resolverAlias}(${resolverArgs});if(${resultAlias}!=null)return{defaultIcon:${resultAlias},chronicleRunningIcon:null};${linuxIconFallback}return{defaultIcon:await ${electronAlias}.app.getFileIcon(process.execPath,{size:\`small\`}),chronicleRunningIcon:null}`,
       );
+    } else if (/let [A-Za-z_$][\w$]*=K9\([^)]*\);return [A-Za-z_$][\w$]*==null\?\{defaultIcon:await [A-Za-z_$][\w$]*\.app\.getFileIcon\(process\.execPath,\{size:`small`\}\),chronicleRunningIcon:null\}:\{defaultIcon:[A-Za-z_$][\w$]*,chronicleRunningIcon:null\}/.test(patchedSource)) {
+      patchedSource = patchedSource.replace(
+        /let ([A-Za-z_$][\w$]*)=K9\(([^)]*)\);return \1==null\?\{defaultIcon:await ([A-Za-z_$][\w$]*)\.app\.getFileIcon\(process\.execPath,\{size:(`small`|`normal`)\}\),chronicleRunningIcon:null\}:\{defaultIcon:\1,chronicleRunningIcon:null\}/,
+        (_match, iconVar, iconArgs, electronAlias, sizeExpression) =>
+          `if(process.platform===\`linux\`){let __codexLinuxTrayIcon=${electronAlias}.nativeImage.createFromPath(${packagedTrayIconPathExpression});if(!__codexLinuxTrayIcon.isEmpty())return{defaultIcon:__codexLinuxTrayIcon,chronicleRunningIcon:null};let __codexLinuxAppIcon=${electronAlias}.nativeImage.createFromPath(${packagedAppIconPathExpression});if(!__codexLinuxAppIcon.isEmpty())return{defaultIcon:__codexLinuxAppIcon,chronicleRunningIcon:null};let __codexLinuxUpstreamTrayIcon=${electronAlias}.nativeImage.createFromPath(${iconPathExpression});if(!__codexLinuxUpstreamTrayIcon.isEmpty())return{defaultIcon:__codexLinuxUpstreamTrayIcon,chronicleRunningIcon:null}}let ${iconVar}=K9(${iconArgs});return ${iconVar}==null?{defaultIcon:await ${electronAlias}.app.getFileIcon(process.execPath,{size:${sizeExpression}}),chronicleRunningIcon:null}:{defaultIcon:${iconVar},chronicleRunningIcon:null}`,
+      );
     } else {
       console.warn("WARN: Could not find tray icon fallback — skipping Linux tray icon patch");
     }

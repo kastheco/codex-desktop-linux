@@ -1470,6 +1470,12 @@ find_fnm_codex_cli() {
 }
 
 find_codex_cli() {
+    local managed_cli="$HOME/.codex/packages/standalone/current/codex"
+    if [ -x "$managed_cli" ]; then
+        echo "$managed_cli"
+        return 0
+    fi
+
     if command -v codex >/dev/null 2>&1; then
         command -v codex
         return 0

@@ -1,5 +1,8 @@
 "use strict";
 
+const fs = require("node:fs");
+const path = require("node:path");
+
 const HANDLER_NAME = "linux-read-aloud";
 const RUNTIME_VERSION = "conversation-mode-v20";
 
@@ -43,7 +46,7 @@ function applyReadAloudMainBundlePatch(source) {
 function conversationRuntimeSource() {
   return [
     `;(()=>{const VERSION=${JSON.stringify(RUNTIME_VERSION)};if(globalThis.codexLinuxConversationVersion===VERSION)return;globalThis.codexLinuxConversationVersion=VERSION;`,
-    `const METHOD=${JSON.stringify(HANDLER_NAME)};let seq=0,pending=new Map,state={active:false,controls:null,activeConversationId:null,epoch:0,listening:false,muted:false,transcribing:false,awaitingUserTranscript:false,allowAssistant:false,finalizing:false,assistantKey:null,assistantFallbackKey:null,assistantFinalSpoken:false,assistantText:"",assistantSpokenText:"",assistantKeys:[],spokenAssistant:new Map,spokenAssistantTexts:[],queue:[],speaking:false,speechTimer:null,speechCooldownUntil:0,interruptCleanup:null,interruptPendingEpoch:0,interruptSerial:0,restartTimer:null,flushTimer:null,seenAssistantKeys:new Set,lastConversationId:null,lastSentText:"",lastSentAt:0,cursorSentAtMs:0,spokenEchoText:"",spokenEchoAt:0,stopButton:null,muteButton:null,composerAura:null};`,
+    `const METHOD=${JSON.stringify(HANDLER_NAME)};let seq=0,pending=new Map,state={active:false,controls:null,activeConversationId:null,epoch:0,listening:false,muted:false,transcribing:false,awaitingUserTranscript:false,allowAssistant:false,finalizing:false,assistantKey:null,assistantFallbackKey:null,assistantFinalSpoken:false,assistantText:"",assistantSpokenText:"",assistantKeys:[],spokenAssistant:new Map,spokenAssistantTexts:[],queue:[],speaking:false,speechTimer:null,speechCooldownUntil:0,interruptCleanup:null,interruptPendingEpoch:0,interruptSerial:0,restartTimer:null,flushTimer:null,seenAssistantKeys:new Set,lastConversationId:null,lastSentText:"",lastSentAt:0,cursorSentAtMs:0,spokenEchoText:"",spokenEchoAt:0,startButton:null,stopButton:null,muteButton:null,composerAura:null};`,
     `function onMessage(e){let t=e?.data;if(!t||typeof t!="object"||t.type!=="fetch-response")return;let n=pending.get(t.requestId);if(!n)return;pending.delete(t.requestId);clearTimeout(n.timer);if(t.responseType==="success"){let e=null;try{e=t.bodyJsonString?JSON.parse(t.bodyJsonString):null}catch{}n.resolve({status:t.status,body:e})}else n.reject(Error(t.error||"fetch failed"))}`,
     `window.addEventListener("message",onMessage);`,
     `function dispatch(payload){let bridge=window.electronBridge,event=new CustomEvent("codex-message-from-view",{detail:payload});if(bridge?.sendMessageFromView){event.__codexForwardedViaBridge=!0;bridge.sendMessageFromView(payload).catch(()=>{})}window.dispatchEvent(event)}`,
@@ -57,18 +60,20 @@ function conversationRuntimeSource() {
     `function stopSpeech(resetAssistant=false){state.epoch++;resetSpeechState();resetAssistant&&resetTurnState();try{globalThis.speechSynthesis?.cancel?.()}catch{}post({action:"stop"}).catch(()=>{})}`,
     `function isSpeaking(){return state.active&&(state.speaking||state.queue.length>0)}`,
     `function stopSpeaking(){if(!isSpeaking())return false;state.assistantFinalSpoken=true;stopSpeech(false);return true}`,
-    `function installUi(){if(typeof document==="undefined"||!document.body)return;let style=document.getElementById("codex-linux-conversation-style");if(!style){style=document.createElement("style");style.id="codex-linux-conversation-style";style.textContent=".codex-linux-conversation-composer-aura{position:relative!important;outline:1px solid rgba(58,196,125,.55)!important;box-shadow:0 0 0 2px rgba(58,196,125,.11),0 0 0 6px rgba(56,189,248,.055),0 12px 30px rgba(20,120,90,.10)!important;border-radius:18px!important;transition:outline-color .18s ease,box-shadow .18s ease}.codex-linux-conversation-composer-aura::after{content:\\"\\";position:absolute;inset:-4px;border:1px solid rgba(56,189,248,.36);border-radius:20px;box-shadow:0 0 18px rgba(34,197,94,.12);opacity:.78;pointer-events:none}.codex-linux-conversation-stop,.codex-linux-conversation-mute{position:fixed;right:var(--codex-linux-conversation-control-right,22px);width:38px;height:38px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:var(--token-surface-primary,#fff);box-shadow:0 8px 22px rgba(0,0,0,.18);cursor:pointer;z-index:2147483001}.codex-linux-conversation-stop{bottom:var(--codex-linux-conversation-stop-bottom,92px);border:1px solid rgba(58,196,125,.75);color:rgb(18,126,82)}.codex-linux-conversation-mute{bottom:var(--codex-linux-conversation-mute-bottom,138px);border:1px solid rgba(56,189,248,.75);color:rgb(14,116,144)}.codex-linux-conversation-muted .codex-linux-conversation-mute{border-color:rgba(239,68,68,.8);background:rgba(239,68,68,.10);color:rgb(185,28,28)}.codex-linux-conversation-stop:hover,.codex-linux-conversation-mute:hover{background:rgba(58,196,125,.12)}.codex-linux-conversation-muted .codex-linux-conversation-mute:hover{background:rgba(239,68,68,.16)}.codex-linux-conversation-stop:active,.codex-linux-conversation-mute:active{transform:translateY(1px)}.codex-linux-conversation-stop[hidden],.codex-linux-conversation-mute[hidden]{display:none}.codex-linux-conversation-stop svg,.codex-linux-conversation-mute svg{width:18px;height:18px}@media (prefers-reduced-motion:no-preference){.codex-linux-conversation-composer-aura::after{animation:codex-linux-conversation-aura 2.4s ease-in-out infinite}@keyframes codex-linux-conversation-aura{0%,100%{opacity:.55;box-shadow:0 0 14px rgba(34,197,94,.10)}50%{opacity:.95;box-shadow:0 0 24px rgba(56,189,248,.16)}}}";document.head?.appendChild?.(style)}if(!state.stopButton)state.stopButton=document.getElementById("codex-linux-conversation-stop");if(!state.stopButton){let button=document.createElement("button");button.id="codex-linux-conversation-stop";button.type="button";button.className="codex-linux-conversation-stop";button.title="Stop conversation mode";button.setAttribute("aria-label","Stop conversation mode");button.hidden=true;button.innerHTML="<svg aria-hidden=\\"true\\" viewBox=\\"0 0 24 24\\" fill=\\"none\\" stroke=\\"currentColor\\" stroke-width=\\"2\\" stroke-linecap=\\"round\\" stroke-linejoin=\\"round\\"><circle cx=\\"12\\" cy=\\"12\\" r=\\"9\\"></circle><rect x=\\"9\\" y=\\"9\\" width=\\"6\\" height=\\"6\\" rx=\\"1\\" fill=\\"currentColor\\"></rect></svg>";button.addEventListener("click",e=>{e?.preventDefault?.();e?.stopPropagation?.();stopConversation()});document.body.appendChild(button);state.stopButton=button}if(!state.muteButton)state.muteButton=document.getElementById("codex-linux-conversation-mute");if(!state.muteButton){let button=document.createElement("button");button.id="codex-linux-conversation-mute";button.type="button";button.className="codex-linux-conversation-mute";button.hidden=true;button.addEventListener("click",e=>{e?.preventDefault?.();e?.stopPropagation?.();toggleMute()});document.body.appendChild(button);state.muteButton=button}}`,
+    `function installUi(){if(typeof document==="undefined"||!document.body)return;let style=document.getElementById("codex-linux-conversation-style");if(!style){style=document.createElement("style");style.id="codex-linux-conversation-style";style.textContent=".codex-linux-conversation-composer-aura{position:relative!important;outline:1px solid rgba(58,196,125,.55)!important;box-shadow:0 0 0 2px rgba(58,196,125,.11),0 0 0 6px rgba(56,189,248,.055),0 12px 30px rgba(20,120,90,.10)!important;border-radius:18px!important;transition:outline-color .18s ease,box-shadow .18s ease}.codex-linux-conversation-composer-aura::after{content:\\"\\";position:absolute;inset:-4px;border:1px solid rgba(56,189,248,.36);border-radius:20px;box-shadow:0 0 18px rgba(34,197,94,.12);opacity:.78;pointer-events:none}.codex-linux-conversation-start,.codex-linux-conversation-stop,.codex-linux-conversation-mute{position:fixed;right:var(--codex-linux-conversation-control-right,22px);height:38px;display:inline-flex;align-items:center;justify-content:center;border-radius:999px;background:var(--token-surface-primary,#fff);box-shadow:0 8px 22px rgba(0,0,0,.18);cursor:pointer;z-index:2147483001}.codex-linux-conversation-start{bottom:var(--codex-linux-conversation-start-bottom,92px);gap:8px;padding:0 13px;border:1px solid rgba(58,196,125,.75);color:rgb(18,126,82);font:inherit;font-size:13px;font-weight:500;line-height:1}.codex-linux-conversation-stop,.codex-linux-conversation-mute{width:38px}.codex-linux-conversation-stop{bottom:var(--codex-linux-conversation-stop-bottom,92px);border:1px solid rgba(58,196,125,.75);color:rgb(18,126,82)}.codex-linux-conversation-mute{bottom:var(--codex-linux-conversation-mute-bottom,138px);border:1px solid rgba(56,189,248,.75);color:rgb(14,116,144)}.codex-linux-conversation-muted .codex-linux-conversation-mute{border-color:rgba(239,68,68,.8);background:rgba(239,68,68,.10);color:rgb(185,28,28)}.codex-linux-conversation-start:hover,.codex-linux-conversation-stop:hover,.codex-linux-conversation-mute:hover{background:rgba(58,196,125,.12)}.codex-linux-conversation-muted .codex-linux-conversation-mute:hover{background:rgba(239,68,68,.16)}.codex-linux-conversation-start:active,.codex-linux-conversation-stop:active,.codex-linux-conversation-mute:active{transform:translateY(1px)}.codex-linux-conversation-start[hidden],.codex-linux-conversation-stop[hidden],.codex-linux-conversation-mute[hidden]{display:none}.codex-linux-conversation-start svg,.codex-linux-conversation-stop svg,.codex-linux-conversation-mute svg{width:18px;height:18px;flex:0 0 auto}@media (prefers-reduced-motion:no-preference){.codex-linux-conversation-composer-aura::after{animation:codex-linux-conversation-aura 2.4s ease-in-out infinite}@keyframes codex-linux-conversation-aura{0%,100%{opacity:.55;box-shadow:0 0 14px rgba(34,197,94,.10)}50%{opacity:.95;box-shadow:0 0 24px rgba(56,189,248,.16)}}}";document.head?.appendChild?.(style)}if(!state.startButton)state.startButton=document.getElementById("codex-linux-conversation-start");if(!state.startButton){let button=document.createElement("button");button.id="codex-linux-conversation-start";button.type="button";button.className="codex-linux-conversation-start";button.title="Start conversation mode";button.setAttribute("aria-label","Start conversation mode");button.hidden=true;button.innerHTML="<svg aria-hidden=\\"true\\" viewBox=\\"0 0 24 24\\" fill=\\"none\\" stroke=\\"currentColor\\" stroke-width=\\"2\\" stroke-linecap=\\"round\\" stroke-linejoin=\\"round\\"><path d=\\"M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z\\"></path><path d=\\"M19 10v2a7 7 0 0 1-14 0v-2\\"></path><line x1=\\"12\\" y1=\\"19\\" x2=\\"12\\" y2=\\"22\\"></line></svg><span>Conversation</span>";button.addEventListener("click",e=>{e?.preventDefault?.();e?.stopPropagation?.();startConversation()});document.body.appendChild(button);state.startButton=button}if(!state.stopButton)state.stopButton=document.getElementById("codex-linux-conversation-stop");if(!state.stopButton){let button=document.createElement("button");button.id="codex-linux-conversation-stop";button.type="button";button.className="codex-linux-conversation-stop";button.title="Stop conversation mode";button.setAttribute("aria-label","Stop conversation mode");button.hidden=true;button.innerHTML="<svg aria-hidden=\\"true\\" viewBox=\\"0 0 24 24\\" fill=\\"none\\" stroke=\\"currentColor\\" stroke-width=\\"2\\" stroke-linecap=\\"round\\" stroke-linejoin=\\"round\\"><circle cx=\\"12\\" cy=\\"12\\" r=\\"9\\"></circle><rect x=\\"9\\" y=\\"9\\" width=\\"6\\" height=\\"6\\" rx=\\"1\\" fill=\\"currentColor\\"></rect></svg>";button.addEventListener("click",e=>{e?.preventDefault?.();e?.stopPropagation?.();stopConversation()});document.body.appendChild(button);state.stopButton=button}if(!state.muteButton)state.muteButton=document.getElementById("codex-linux-conversation-mute");if(!state.muteButton){let button=document.createElement("button");button.id="codex-linux-conversation-mute";button.type="button";button.className="codex-linux-conversation-mute";button.hidden=true;button.addEventListener("click",e=>{e?.preventDefault?.();e?.stopPropagation?.();toggleMute()});document.body.appendChild(button);state.muteButton=button}}`,
     `function conversationMuteIcon(muted){return muted?"<svg aria-hidden=\\"true\\" viewBox=\\"0 0 24 24\\" fill=\\"none\\" stroke=\\"currentColor\\" stroke-width=\\"2\\" stroke-linecap=\\"round\\" stroke-linejoin=\\"round\\"><path d=\\"M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 5.12 2.12\\"></path><path d=\\"M15 9.34V6a3 3 0 0 0-4.28-2.71\\"></path><path d=\\"M19 10v2a7 7 0 0 1-.7 3.05\\"></path><path d=\\"M5 10v2a7 7 0 0 0 9.74 6.44\\"></path><line x1=\\"12\\" y1=\\"19\\" x2=\\"12\\" y2=\\"22\\"></line><line x1=\\"4\\" y1=\\"4\\" x2=\\"20\\" y2=\\"20\\"></line></svg>":"<svg aria-hidden=\\"true\\" viewBox=\\"0 0 24 24\\" fill=\\"none\\" stroke=\\"currentColor\\" stroke-width=\\"2\\" stroke-linecap=\\"round\\" stroke-linejoin=\\"round\\"><path d=\\"M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3Z\\"></path><path d=\\"M19 10v2a7 7 0 0 1-14 0v-2\\"></path><line x1=\\"12\\" y1=\\"19\\" x2=\\"12\\" y2=\\"22\\"></line></svg>"}`,
     `function findComposerAuraTarget(){if(typeof document==="undefined")return null;let anchors=document.querySelectorAll?.("[data-composer-attachments-row],textarea,[contenteditable='true'],[data-above-composer-queue-portal],[data-above-composer-portal]")??[];for(let i=anchors.length-1;i>=0;i--){let anchor=anchors[i],target=anchor.closest?.("form,[data-composer-overlay-floating-ui],[class*='composer']")||anchor.parentElement;if(target&&(!document.body?.contains||document.body.contains(target)))return target}return null}`,
-    `function updateControlAnchor(target){if(typeof document==="undefined")return;let style=document.documentElement?.style;if(!style)return;if(!state.active||!target?.getBoundingClientRect){style.removeProperty?.("--codex-linux-conversation-control-right");style.removeProperty?.("--codex-linux-conversation-stop-bottom");style.removeProperty?.("--codex-linux-conversation-mute-bottom");return}let rect=target.getBoundingClientRect(),width=window.innerWidth||document.documentElement?.clientWidth||0,height=window.innerHeight||document.documentElement?.clientHeight||0;if(!width||!height)return;let right=Math.max(12,Math.min(width-50,width-rect.right-48)),maxStopBottom=Math.max(82,Math.min(240,height-96)),stopBottom=Math.max(82,Math.min(maxStopBottom,height-rect.top+8)),muteBottom=Math.min(height-50,stopBottom+46);style.setProperty("--codex-linux-conversation-control-right",right+"px");style.setProperty("--codex-linux-conversation-stop-bottom",stopBottom+"px");style.setProperty("--codex-linux-conversation-mute-bottom",muteBottom+"px")}`,
-    `function updateComposerAura(){let previous=state.composerAura;if(!state.active){previous?.classList?.remove?.("codex-linux-conversation-composer-aura");state.composerAura=null;updateControlAnchor(null);return}let target=findComposerAuraTarget();if(previous&&previous!==target)previous.classList?.remove?.("codex-linux-conversation-composer-aura");target?.classList?.add?.("codex-linux-conversation-composer-aura");state.composerAura=target;updateControlAnchor(target)}`,
-    `function updateUi(){try{if(typeof document==="undefined")return;if(!document.body){state.active&&setTimeout(updateUi,250);return}installUi();document.documentElement?.classList?.toggle?.("codex-linux-conversation-active",state.active);document.body.classList?.toggle?.("codex-linux-conversation-active",state.active);document.documentElement?.classList?.toggle?.("codex-linux-conversation-muted",state.active&&state.muted);document.body.classList?.toggle?.("codex-linux-conversation-muted",state.active&&state.muted);updateComposerAura();if(state.stopButton)state.stopButton.hidden=!state.active;if(state.muteButton){let label=state.muted?"Unmute microphone":"Mute microphone";state.muteButton.hidden=!state.active;state.muteButton.title=label;state.muteButton.setAttribute("aria-label",label);state.muteButton.setAttribute("aria-pressed",state.muted?"true":"false");state.muteButton.innerHTML=conversationMuteIcon(state.muted)}}catch{}}`,
+    `function canStartConversation(){return !state.active&&available()&&conversationId(state.controls?.conversationId)!=null&&typeof state.controls?.startDictation=="function"}`,
+    `function updateControlAnchor(target){if(typeof document==="undefined")return;let style=document.documentElement?.style;if(!style)return;if(!target?.getBoundingClientRect){style.removeProperty?.("--codex-linux-conversation-control-right");style.removeProperty?.("--codex-linux-conversation-start-bottom");style.removeProperty?.("--codex-linux-conversation-stop-bottom");style.removeProperty?.("--codex-linux-conversation-mute-bottom");return}let rect=target.getBoundingClientRect(),width=window.innerWidth||document.documentElement?.clientWidth||0,height=window.innerHeight||document.documentElement?.clientHeight||0;if(!width||!height)return;let right=Math.max(12,Math.min(width-50,width-rect.right-48)),maxStopBottom=Math.max(82,Math.min(240,height-96)),stopBottom=Math.max(82,Math.min(maxStopBottom,height-rect.top+8)),muteBottom=Math.min(height-50,stopBottom+46);style.setProperty("--codex-linux-conversation-control-right",right+"px");style.setProperty("--codex-linux-conversation-start-bottom",stopBottom+"px");style.setProperty("--codex-linux-conversation-stop-bottom",stopBottom+"px");style.setProperty("--codex-linux-conversation-mute-bottom",muteBottom+"px")}`,
+    `function updateComposerAura(){let previous=state.composerAura,target=findComposerAuraTarget();if(!state.active){previous?.classList?.remove?.("codex-linux-conversation-composer-aura");state.composerAura=null;updateControlAnchor(canStartConversation()?target:null);return}if(previous&&previous!==target)previous.classList?.remove?.("codex-linux-conversation-composer-aura");target?.classList?.add?.("codex-linux-conversation-composer-aura");state.composerAura=target;updateControlAnchor(target)}`,
+    `function updateUi(){try{if(typeof document==="undefined")return;if(!document.body){(state.active||canStartConversation())&&setTimeout(updateUi,250);return}installUi();document.documentElement?.classList?.toggle?.("codex-linux-conversation-active",state.active);document.body.classList?.toggle?.("codex-linux-conversation-active",state.active);document.documentElement?.classList?.toggle?.("codex-linux-conversation-muted",state.active&&state.muted);document.body.classList?.toggle?.("codex-linux-conversation-muted",state.active&&state.muted);updateComposerAura();let canStart=canStartConversation();if(state.startButton)state.startButton.hidden=!canStart;if(state.stopButton)state.stopButton.hidden=!state.active;if(state.muteButton){let label=state.muted?"Unmute microphone":"Mute microphone";state.muteButton.hidden=!state.active;state.muteButton.title=label;state.muteButton.setAttribute("aria-label",label);state.muteButton.setAttribute("aria-pressed",state.muted?"true":"false");state.muteButton.innerHTML=conversationMuteIcon(state.muted)}}catch{}}`,
+    `function startConversation(){return state.controls?toggle(state.controls):false}`,
     `function stopConversation(){if(!state.active)return false;deactivate("discard");return true}`,
     `function cancelInterruptMonitor(){state.interruptSerial++;state.interruptPendingEpoch=0;stopInterruptMonitor()}`,
     `function toggleMute(force){if(!state.active)return false;let muted=typeof force==="boolean"?force:!state.muted;if(muted===state.muted){updateUi();return true}state.muted=muted;state.speechCooldownUntil=0;clearTimeout(state.restartTimer);state.restartTimer=null;if(state.muted){cancelInterruptMonitor();state.listening=false;state.controls?.stopDictation?.("discard")}else if(isResponseInProgress()||state.speaking||state.queue.length>0)startInterruptMonitor();else{state.listening=false;startListeningSoon(0,!0)}updateUi();return true}`,
-    `function deactivate(stopAction="insert"){if(!state.active)return;state.active=false;state.muted=false;state.epoch++;state.interruptPendingEpoch=0;clearTimeout(state.restartTimer);state.restartTimer=null;stopSpeech();cancelInterruptMonitor();state.controls?.stopDictation?.(stopAction);state.controls=null;state.activeConversationId=null;state.seenAssistantKeys.clear();state.spokenAssistant.clear();state.spokenAssistantTexts=[];state.cursorSentAtMs=0;resetTranscriptState();resetTurnState();updateUi()}`,
+    `function deactivate(stopAction="insert"){if(!state.active)return;let previousConversationId=state.activeConversationId;state.active=false;state.muted=false;state.epoch++;state.interruptPendingEpoch=0;clearTimeout(state.restartTimer);state.restartTimer=null;stopSpeech();cancelInterruptMonitor();state.controls?.stopDictation?.(stopAction);state.controls=state.controls&&previousConversationId?{...state.controls,conversationId:previousConversationId}:state.controls;state.activeConversationId=null;state.seenAssistantKeys.clear();state.spokenAssistant.clear();state.spokenAssistantTexts=[];state.cursorSentAtMs=0;resetTranscriptState();resetTurnState();updateUi()}`,
     `function mergeControls(controls){if(controls&&typeof controls==="object")state.controls={...state.controls,...controls}}`,
-    `function sync(conversation,controls){if(!state.active)return false;let id=conversationId(conversation);if(id!==state.activeConversationId){deactivate("insert");return false}let was=isResponseInProgress();mergeControls(controls);let now=isResponseInProgress();if(now&&!was){(!state.allowAssistant||state.awaitingUserTranscript)&&stopSpeech(!0);state.awaitingUserTranscript=false;state.allowAssistant=true;state.muted||startInterruptMonitor()}else if(now&&!state.muted)startInterruptMonitor();if(was&&!now){state.finalizing=true;finishAssistantSoon(650)}updateComposerAura();return true}`,
+    `function sync(conversation,controls){let id=conversationId(conversation);if(id)state.lastConversationId=id;if(!state.active){id&&(state.controls={...state.controls,...controls,conversationId:id},updateUi());return false}if(id!==state.activeConversationId){deactivate("insert");return false}let was=isResponseInProgress();mergeControls(controls);let now=isResponseInProgress();if(now&&!was){(!state.allowAssistant||state.awaitingUserTranscript)&&stopSpeech(!0);state.awaitingUserTranscript=false;state.allowAssistant=true;state.muted||startInterruptMonitor()}else if(now&&!state.muted)startInterruptMonitor();if(was&&!now){state.finalizing=true;finishAssistantSoon(650)}updateComposerAura();return true}`,
     `function isActive(conversation){return state.active&&conversationId(conversation)===state.activeConversationId}`,
     `function estimateMs(text){let words=text.split(/\\s+/).filter(Boolean).length;return Math.max(2200,Math.min(600000,words*430))}`,
     `function speechSettings(){let quiet=Number(localStorage.getItem("codex-linux-conversation-silence-ms")||1800),threshold=Number(localStorage.getItem("codex-linux-conversation-vad-threshold")||0.01),interrupt=Number(localStorage.getItem("codex-linux-conversation-interrupt-threshold")||0.035);threshold=Number.isFinite(threshold)?Math.min(.2,Math.max(.002,threshold)):.01;let possibleThreshold=Math.max(.002,threshold*.45);interrupt=Number.isFinite(interrupt)?Math.min(.25,Math.max(threshold*1.8,interrupt)):.035;return{quietMs:Number.isFinite(quiet)?Math.min(2000,Math.max(900,quiet)):1800,threshold,possibleThreshold,interruptThreshold:interrupt,speechMs:220,interruptMs:420,interruptGraceMs:180,audioPollMs:32}}`,
@@ -336,6 +341,78 @@ function applyComposerControlPatch(source) {
   return patched;
 }
 
+function dictationComposerBinding(source) {
+  const propsPattern = new RegExp(
+    `\\{([^{}]*isResponseInProgress:${JS_IDENT}[^{}]*onStop:${JS_IDENT}[^{}]*voiceControls:${JS_IDENT}[^{}]*)\\}\\)\\{`,
+    "g",
+  );
+  for (const propsMatch of source.matchAll(propsPattern)) {
+    const propsObject = propsMatch[1];
+    const voiceControlsVar = objectPropVar(propsObject, "voiceControls", null);
+    if (voiceControlsVar == null) {
+      continue;
+    }
+    const voiceControlsPattern = new RegExp(
+      `\\{([^{}]*isDictating:[^{}]*isDictationButtonVisible:[^{}]*isDictationSupported:[^{}]*isTranscribing:[^{}]*startDictation:[^{}]*stopDictation:[^{}]*)\\}\\s*=\\s*${escapeRegExp(voiceControlsVar)}`,
+    );
+    const voiceMatch = source.slice(propsMatch.index).match(voiceControlsPattern);
+    if (voiceMatch == null) {
+      continue;
+    }
+    const afterProps = source.slice(propsMatch.index, propsMatch.index + 4000);
+    const conversationId =
+      afterProps.match(new RegExp(`(${JS_IDENT})=Kp\\(${JS_IDENT}\\)`))?.[1] ??
+      afterProps.match(new RegExp(`(${JS_IDENT})=${JS_IDENT}\\(${JS_IDENT}\\)`))?.[1] ??
+      null;
+    if (conversationId == null) {
+      continue;
+    }
+    const voiceObject = voiceMatch[1];
+    return {
+      props: {
+        conversationId,
+        isResponseInProgress: objectPropVar(propsObject, "isResponseInProgress", null),
+        onStop: objectPropVar(propsObject, "onStop", null),
+      },
+      vars: {
+        canRetryDictation: objectPropVar(voiceObject, "canRetryDictation", "canRetryDictation"),
+        dictationShortcutLabel: objectPropVar(voiceObject, "dictationShortcutLabel", "dictationShortcutLabel"),
+        isDictating: objectPropVar(voiceObject, "isDictating", "isDictating"),
+        isDictationButtonVisible: objectPropVar(voiceObject, "isDictationButtonVisible", "isDictationButtonVisible"),
+        isDictationSupported: objectPropVar(voiceObject, "isDictationSupported", "isDictationSupported"),
+        isTranscribing: objectPropVar(voiceObject, "isTranscribing", "isTranscribing"),
+        retryDictation: objectPropVar(voiceObject, "retryDictation", "retryDictation"),
+        startDictation: objectPropVar(voiceObject, "startDictation", "startDictation"),
+        stopDictation: objectPropVar(voiceObject, "stopDictation", "stopDictation"),
+        restrictedSession: objectPropVar(voiceObject, "restrictedSession", "restrictedSession"),
+      },
+    };
+  }
+  return null;
+}
+
+function applyDictationComposerControlPatch(source) {
+  const binding = dictationComposerBinding(source);
+  if (binding == null) {
+    warn("Could not resolve dictation composer aliases", "conversation mode composer control patch");
+    return source;
+  }
+  const { props, vars } = binding;
+  const voiceButtonPattern = new RegExp(
+    `let (${JS_IDENT})=\\(0,(${JS_IDENT})\\.jsx\\)\\((${JS_IDENT}),\\{isTranscribing:${escapeRegExp(vars.isTranscribing)},recordingDurationMs:(${JS_IDENT}),waveformCanvasRef:(${JS_IDENT}),noBottomMargin:([^,]+),stopDictation:${escapeRegExp(vars.stopDictation)}\\}\\),(${JS_IDENT})=\\(0,\\2\\.jsx\\)\\((${JS_IDENT}),\\{isVisible:${escapeRegExp(vars.isDictationButtonVisible)},disabled:!${escapeRegExp(vars.isDictationSupported)}\\|\\|${escapeRegExp(vars.restrictedSession)}\\.thread\\.phase!==\`inactive\`,isTranscribing:${escapeRegExp(vars.isTranscribing)},canRetryDictation:${escapeRegExp(vars.canRetryDictation)},shortcutLabel:${escapeRegExp(vars.dictationShortcutLabel)},retryDictation:${escapeRegExp(vars.retryDictation)},startDictation:${escapeRegExp(vars.startDictation)},stopDictation:${escapeRegExp(vars.stopDictation)}\\}\\)`,
+  );
+  if (!voiceButtonPattern.test(source)) {
+    warn("Could not find dictation voice button render call", "conversation mode composer control patch");
+    return source;
+  }
+  const syncPayload = composerSyncPayload(vars, props);
+  const togglePayload = composerTogglePayload(vars, props);
+  return source.replace(
+    voiceButtonPattern,
+    `let $1=(0,$2.jsx)($3,{isTranscribing:${vars.isTranscribing},recordingDurationMs:$4,waveformCanvasRef:$5,noBottomMargin:$6,stopDictation:${vars.stopDictation}});globalThis.codexLinuxConversationSync?.(${props.conversationId},{${syncPayload}});let codexLinuxConversationActive=globalThis.codexLinuxConversationIsActive?.(${props.conversationId})===!0,$7=(0,$2.jsx)($8,{isVisible:codexLinuxConversationActive||${vars.isDictationButtonVisible},disabled:!codexLinuxConversationActive&&(!${vars.isDictationSupported}||${vars.restrictedSession}.thread.phase!==\`inactive\`),isTranscribing:${vars.isTranscribing},canRetryDictation:${vars.canRetryDictation},shortcutLabel:${vars.dictationShortcutLabel},retryDictation:${vars.retryDictation},startDictation:()=>{if(globalThis.codexLinuxConversationToggle?.({${togglePayload}}))return;${vars.startDictation}()},stopDictation:${vars.stopDictation}})`,
+  );
+}
+
 function applyDictationEndpointPatch(source) {
   if (
     !source.includes("global-dictation-record-history-item") &&
@@ -464,15 +541,59 @@ function applyAssistantRenderPatch(source) {
   return source;
 }
 
+function isComposerControlSource(source) {
+  return source.includes("voiceControls") &&
+    (source.includes("composer.startVoiceMode") ||
+      (source.includes("isDictationButtonVisible") && source.includes("startDictation")));
+}
+
 function applyComposerPatch(source) {
-  if (!source.includes("composer.startVoiceMode") || !source.includes("voiceControls")) {
+  if (!isComposerControlSource(source)) {
     return source;
   }
-  return applyComposerRuntimePatch(applyComposerControlPatch(source));
+  const patched = source.includes("composer.startVoiceMode")
+    ? applyComposerControlPatch(source)
+    : applyDictationComposerControlPatch(source);
+  if (!patched.includes("codexLinuxConversationToggle")) {
+    return patched;
+  }
+  return applyComposerRuntimePatch(patched);
+}
+
+function applyComposerAssetsPatch(extractedDir) {
+  const assetsDir = path.join(extractedDir, "webview", "assets");
+  if (!fs.existsSync(assetsDir)) {
+    warn(`Could not find webview assets directory ${assetsDir}`, "conversation mode composer control patch");
+    return { matched: 0, changed: 0 };
+  }
+
+  let matched = 0;
+  let changed = 0;
+  for (const name of fs.readdirSync(assetsDir).sort()) {
+    if (!name.endsWith(".js")) {
+      continue;
+    }
+    const file = path.join(assetsDir, name);
+    const source = fs.readFileSync(file, "utf8");
+    if (!isComposerControlSource(source)) {
+      continue;
+    }
+    matched += 1;
+    const patched = applyComposerPatch(source);
+    if (patched !== source) {
+      fs.writeFileSync(file, patched, "utf8");
+      changed += 1;
+    }
+  }
+  if (matched === 0) {
+    warn("Could not find composer voice control bundle", "conversation mode composer control patch");
+  }
+  return { matched, changed };
 }
 
 module.exports = {
   applyAssistantRenderPatch,
+  applyComposerAssetsPatch,
   applyComposerControlPatch,
   applyComposerPatch,
   applyComposerRuntimePatch,
@@ -499,13 +620,10 @@ module.exports = {
     },
     {
       id: "composer-control",
-      phase: "webview-asset",
+      phase: "extracted-app:post-webview",
       order: 20700,
       ciPolicy: "optional",
-      pattern: /^composer-(?!atoms-).*\.js$/,
-      missingDescription: "composer bundle",
-      skipDescription: "conversation mode composer control patch",
-      apply: applyComposerPatch,
+      apply: applyComposerAssetsPatch,
     },
     {
       id: "assistant-observer",
